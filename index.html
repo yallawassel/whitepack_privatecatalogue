@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WhitePack — Catalogue v7.2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;font-family:Arial;background:#f5fff8;color:#213}
+header{background:linear-gradient(90deg,#a6e8a6,#4ea84e);padding:14px}
+.container{padding:16px}
+input,button{padding:8px;border-radius:6px;border:1px solid #ccc}
+button{background:#166534;color:#fff;border:none;cursor:pointer}
+.card{background:#fff;border-radius:10px;padding:10px;margin:8px 0}
+.price{font-weight:bold}
+</style>
+</head>
+<body>
+<header><h2>WhitePack</h2></header>
+
+<div class="container">
+  <label>Name</label>
+  <input id="clientName">
+  <label>Phone</label>
+  <input id="clientPhone" placeholder="03xxxxxx">
+  <button onclick="applyClient()">Load Catalogue</button>
+  <div id="products"></div>
+</div>
+
+<script>
+const PRODUCTS_URL = "products.json";
+const SPECIAL_URL = "special_prices.json";
+const RATE = 90000;
+
+let products=[], specials=[];
+let currentClient={name:"",phone:""};
+
+function norm(p){
+  let c=String(p||"").replace(/\D/g,"");
+  if(!c) return "";
+  if(c.startsWith("961")) return c;
+  c=c.replace(/^0+/,"");
+  if(c.length<=8) c="961"+c;
+  return c;
+}
+
+async function load(){
+  products = await (await fetch(PRODUCTS_URL+"?t="+Date.now())).json();
+  specials = await (await fetch(SPECIAL_URL+"?t="+Date.now())).json();
+}
+load();
+
+function applyClient(){
+  currentClient.name=document.getElementById("clientName").value||"Unknown";
+  currentClient.phone=norm(document.getElementById("clientPhone").value);
+  let sp = specials.find(s=>norm(s.phone)===currentClient.phone);
+  let list=[];
+  if(sp){
+    list = products.filter(p=>sp.products.some(x=>x.sku===p.sku))
+      .map(p=>{
+        const s=sp.products.find(x=>x.sku===p.sku);
+        return {...p, price:s.price};
+      });
+  }else{
+    list = products;
+  }
+  render(list);
+}
+
+function render(list){
+  const box=document.getElementById("products");
+  box.innerHTML="";
+  list.forEach(p=>{
+    box.innerHTML+=`<div class="card">
+      <div><strong>${p.name}</strong></div>
+      <div class="price">${p.price} USD (${Math.round(p.price*RATE).toLocaleString()} LBP)</div>
+      <button onclick='order("${p.name}",${p.price})'>Order</button>
+    </div>`;
+  });
+}
+
+function order(name,price){
+  const orderNo="WP-"+new Date().getTime();
+  const d=new Date().toLocaleString();
+  let msg=`Order: ${orderNo}\nDate: ${d}\nClient: ${currentClient.name}\nPhone: ${currentClient.phone}\n\n- ${name}: ${price} USD`;
+  window.open("https://wa.me/96181085811?text="+encodeURIComponent(msg));
+}
+</script>
+</body>
+</html>

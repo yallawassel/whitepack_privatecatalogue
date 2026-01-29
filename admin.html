@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WhitePack Admin v7.2</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<h2>Admin — Export Special Prices</h2>
+<input type="file" id="excel">
+<button onclick="exportJSON()">Export special_prices.json</button>
+<pre id="out"></pre>
+
+<script>
+let rows=[];
+document.getElementById("excel").addEventListener("change",e=>{
+ const r=new FileReader();
+ r.onload=evt=>{
+  const wb=XLSX.read(new Uint8Array(evt.target.result),{type:"array"});
+  const sh=wb.Sheets["SpecialPrices"];
+  rows=XLSX.utils.sheet_to_json(sh,{defval:""});
+ };
+ r.readAsArrayBuffer(e.target.files[0]);
+});
+
+function exportJSON(){
+ let map={};
+ rows.forEach(r=>{
+  const phone=String(r.phone||"");
+  if(!map[phone]) map[phone]={phone,products:[]};
+  map[phone].products.push({sku:r.sku,price:Number(r.special_price)});
+ });
+ const data=Object.values(map);
+ document.getElementById("out").textContent=JSON.stringify(data,null,2);
+ const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(b);a.download="special_prices.json";a.click();
+}
+</script>
+</body>
+</html>

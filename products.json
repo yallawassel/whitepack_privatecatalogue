@@ -1,0 +1,12 @@
+[
+  {
+    "sku": "SKU-1",
+    "name": "Paper Cups",
+    "price": 1.5
+  },
+  {
+    "sku": "SKU-2",
+    "name": "Trash Bags",
+    "price": 1.0
+  }
+]
