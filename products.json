@@ -2,6 +2,8 @@
   {
     "sku": "SKU-1",
     "name": "Paper Cups",
+    "name_ar": "كبيات كرتون",
+    "category": "Paper",
     "price": 1.5,
     "image": "https://sanitalb.com/public/uploads/images/69428894249722360.jpg"
   }

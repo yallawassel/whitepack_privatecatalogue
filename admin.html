@@ -1,57 +1,42 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>WhitePack Admin v7.3</title>
+<meta charset="utf-8">
+<title>WhitePack Admin v8.0</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<h2>WhitePack Admin</h2>
-<p>Upload Excel and export JSON files</p>
-
-<input type="file" id="excelFile">
-<br><br>
-<button onclick="exportAll()">Export all JSON</button>
-
-<pre id="output"></pre>
-
+<h2>Admin</h2>
+<input type="file" id="excel">
+<button onclick="exportAll()">Export JSON</button>
+<pre id="out"></pre>
 <script>
-let products=[], specials=[];
-
-document.getElementById("excelFile").addEventListener("change", e => {
-  const r = new FileReader();
-  r.onload = evt => {
-    const wb = XLSX.read(new Uint8Array(evt.target.result), {type:"array"});
-    products = XLSX.utils.sheet_to_json(wb.Sheets["Products"], {defval:""});
-    specials = XLSX.utils.sheet_to_json(wb.Sheets["SpecialPrices"], {defval:""});
-    alert("Excel loaded");
-  };
-  r.readAsArrayBuffer(e.target.files[0]);
-});
-
+let rowsP=[],rowsS=[];
+excel.onchange=e=>{
+ const r=new FileReader();
+ r.onload=x=>{
+  const wb=XLSX.read(new Uint8Array(x.target.result),{type:"array"});
+  rowsP=XLSX.utils.sheet_to_json(wb.Sheets["Products"],{defval:""});
+  rowsS=XLSX.utils.sheet_to_json(wb.Sheets["SpecialPrices"],{defval:""});
+ };
+ r.readAsArrayBuffer(e.target.files[0]);
+};
 function exportAll(){
-  const prodOut = products.map(r => ({
-    sku:r.SKU, name:r.Name, price:Number(r.Price||0), image:r.Image||""
-  }));
-
-  let map = {};
-  specials.forEach(r => {
-    if(!map[r.phone]) map[r.phone] = {phone:r.phone, products:[]};
-    map[r.phone].products.push({sku:r.sku, price:Number(r.special_price)});
-  });
-
-  download(prodOut, "products.json");
-  download(Object.values(map), "special_prices.json");
+ const p=rowsP.map(r=>({sku:r.SKU,name:r.Name,name_ar:r.Name_ar,category:r.Category,price:Number(r.Price),image:r.Image}));
+ let map={};
+ rowsS.forEach(r=>{
+  if(!map[r.phone]) map[r.phone]={phone:r.phone,products:[]};
+  map[r.phone].products.push({sku:r.sku,price:Number(r.special_price)});
+ });
+ download(p,"products.json");
+ download(Object.values(map),"special_prices.json");
 }
-
-function download(data, filename){
-  const json = JSON.stringify(data, null, 2);
-  document.getElementById("output").textContent = json;
-  const b = new Blob([json], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(b);
-  a.download = filename;
-  a.click();
+function download(d,f){
+ const j=JSON.stringify(d,null,2);
+ out.textContent=j;
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([j],{type:"application/json"}));
+ a.download=f;a.click();
 }
 </script>
 </body>

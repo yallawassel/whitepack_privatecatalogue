@@ -2,107 +2,168 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>WhitePack — Online Catalogue v7.3</title>
+<title>WhitePack — Catalogue v8.0</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-:root { --bg:#f5fff8; --accent:#3b7a3a; --accent2:#6ecf6e; --card:#fff; }
+:root{--bg:#f5fff8;--accent:#166534;--card:#fff}
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial;background:var(--bg);color:#213}
-header{background:linear-gradient(90deg,#a6e8a6,#4ea84e);padding:14px;display:flex;align-items:center;gap:12px}
-h1{margin:0;font-size:20px}
+header{background:linear-gradient(90deg,#a6e8a6,#4ea84e);padding:14px;display:flex;justify-content:space-between;align-items:center}
+button{cursor:pointer}
 .container{padding:16px}
 .client-box{background:#fff;border-radius:10px;padding:10px;margin-bottom:12px}
-input{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px solid #ccc}
-button{background:#166534;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;margin-top:8px}
+input,select{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px solid #ccc}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
-.card{background:#fff;border-radius:12px;padding:10px;box-shadow:0 2px 6px rgba(0,0,0,0.06);display:flex;flex-direction:column}
-.card-img{width:100%;aspect-ratio:1/1;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.card{background:#fff;border-radius:12px;padding:10px;display:flex;flex-direction:column;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.card-img{aspect-ratio:1/1;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
 .card-img img{width:100%;height:100%;object-fit:cover}
-.price{font-weight:bold;margin-top:4px}
-small{color:#555}
+.price{font-weight:bold}
+.cart-btn{margin-top:auto;background:#166534;color:#fff;border:none;border-radius:6px;padding:6px}
+.cart{position:fixed;bottom:0;right:0;background:#fff;border-radius:12px 12px 0 0;width:100%;max-width:420px;box-shadow:0 -5px 20px rgba(0,0,0,.2);display:none;padding:10px}
+.cart-item{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.lang{background:#fff;border:none;border-radius:20px;padding:4px 10px}
 </style>
 </head>
 <body>
+
 <header>
-  <h1>WhitePack</h1>
+  <strong>WhitePack</strong>
+  <div>
+    <button class="lang" onclick="toggleLang()">AR / EN</button>
+    <button class="lang" onclick="openCart()">🛒 <span id="cartCount">0</span></button>
+  </div>
 </header>
 
 <div class="container">
-  <div class="client-box">
-    <label>Client name</label>
-    <input id="clientName" placeholder="Your name">
-    <label>Phone number (optional)</label>
-    <input id="clientPhone" placeholder="03xxxxxx">
-    <button onclick="applyClient()">Load catalogue</button>
-  </div>
 
-  <div id="grid" class="grid"></div>
+<div class="client-box">
+  <label id="lblName">Client name</label>
+  <input id="clientName">
+  <label id="lblPhone">Phone number</label>
+  <input id="clientPhone" placeholder="03xxxxxx">
+</div>
+
+<input id="search" placeholder="Search..." oninput="render()">
+<select id="categoryFilter" onchange="render()">
+  <option value="">All categories</option>
+</select>
+
+<div id="grid" class="grid"></div>
+</div>
+
+<div id="cart" class="cart">
+  <h3 id="cartTitle">Cart</h3>
+  <div id="cartItems"></div>
+  <button onclick="sendWhatsApp()" class="cart-btn" style="width:100%">Send to WhatsApp</button>
 </div>
 
 <script>
-const PRODUCTS_URL = "products.json";
-const SPECIAL_URL = "special_prices.json";
-const RATE = 90000;
+const PRODUCTS_URL="products.json";
+const SPECIAL_URL="special_prices.json";
+const RATE=90000;
+let lang="en",products=[],specials=[],cart=[];
 
-let products = [];
-let specials = [];
-let currentClient = {name:"", phone:""};
-
-function normalizePhone(num){
-  if(!num) return "";
-  let c = String(num).replace(/\D/g,"");
-  if(c.startsWith("961")) return c;
-  c = c.replace(/^0+/, "");
-  if(c.length <= 8) c = "961" + c;
-  return c;
+function normalizePhone(p){
+ let c=String(p||"").replace(/\D/g,"");
+ if(!c) return "";
+ if(c.startsWith("961")) return c;
+ c=c.replace(/^0+/,"");
+ if(c.length<=8) c="961"+c;
+ return c;
 }
 
-async function loadData(){
-  products = await (await fetch(PRODUCTS_URL + "?t=" + Date.now())).json();
-  try {
-    specials = await (await fetch(SPECIAL_URL + "?t=" + Date.now())).json();
-  } catch(e){ specials = []; }
-  render(products); // public catalogue by default
+async function load(){
+ products=await (await fetch(PRODUCTS_URL)).json();
+ try{specials=await (await fetch(SPECIAL_URL)).json();}catch(e){specials=[];}
+ buildCategories();
+ render();
 }
-loadData();
+load();
 
-function applyClient(){
-  currentClient.name = document.getElementById("clientName").value || "Guest";
-  currentClient.phone = normalizePhone(document.getElementById("clientPhone").value);
+function buildCategories(){
+ const sel=document.getElementById("categoryFilter");
+ const cats=[...new Set(products.map(p=>p.category).filter(Boolean))];
+ cats.forEach(c=>{
+  const o=document.createElement("option");
+  o.value=c;o.textContent=c;
+  sel.appendChild(o);
+ });
+}
 
-  if(!currentClient.phone){
-    render(products);
-    return;
-  }
-
-  const sp = specials.find(s => normalizePhone(s.phone) === currentClient.phone);
+function getVisibleProducts(){
+ const phone=normalizePhone(clientPhone.value);
+ let list=products;
+ if(phone){
+  const sp=specials.find(s=>normalizePhone(s.phone)===phone);
   if(sp){
-    const list = products
-      .filter(p => sp.products.some(x => x.sku === p.sku))
-      .map(p => {
-        const s = sp.products.find(x => x.sku === p.sku);
-        return {...p, price: s.price};
-      });
-    render(list);
-  } else {
-    render(products);
+   list=products.filter(p=>sp.products.some(x=>x.sku===p.sku))
+    .map(p=>{
+     const s=sp.products.find(x=>x.sku===p.sku);
+     return {...p,price:s.price};
+    });
   }
+ }
+ const q=search.value.toLowerCase();
+ const cat=categoryFilter.value;
+ return list.filter(p=>
+  (!q||p.name.toLowerCase().includes(q)||p.name_ar?.includes(q)) &&
+  (!cat||p.category===cat)
+ );
 }
 
-function render(list){
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-  list.forEach(p => {
-    grid.innerHTML += `
-      <div class="card">
-        <div class="card-img">
-          <img src="${p.image || ""}" alt="${p.name}" onerror="this.style.display='none'">
-        </div>
-        <h3>${p.name}</h3>
-        <div class="price">${p.price} USD</div>
-        <small>${Math.round(p.price * RATE).toLocaleString("en-LB")} LBP</small>
-      </div>`;
-  });
+function render(){
+ const grid=document.getElementById("grid");
+ grid.innerHTML="";
+ getVisibleProducts().forEach(p=>{
+  grid.innerHTML+=`
+   <div class="card">
+    <div class="card-img"><img src="${p.image||""}" onerror="this.style.display='none'"></div>
+    <strong>${lang==="ar"?(p.name_ar||p.name):p.name}</strong>
+    <div class="price">${p.price} USD</div>
+    <button class="cart-btn" onclick='addToCart("${p.sku}")'>${lang==="ar"?"أضف":"Add"}</button>
+   </div>`;
+ });
+}
+
+function addToCart(sku){
+ const p=products.find(x=>x.sku===sku);
+ const f=cart.find(x=>x.sku===sku);
+ if(f) f.qty++; else cart.push({sku,qty:1});
+ updateCart();
+}
+
+function updateCart(){
+ cartCount.textContent=cart.reduce((s,i)=>s+i.qty,0);
+ const box=document.getElementById("cartItems");
+ box.innerHTML="";
+ cart.forEach(i=>{
+  const p=products.find(x=>x.sku===i.sku);
+  box.innerHTML+=`
+   <div class="cart-item">
+    <span>${p.name}</span>
+    <input type="number" value="${i.qty}" min="1" style="width:60px" onchange="i.qty=this.value">
+   </div>`;
+ });
+}
+
+function openCart(){cart.style.display="block";updateCart();}
+
+function sendWhatsApp(){
+ let msg=`Client: ${clientName.value}\nPhone: ${normalizePhone(clientPhone.value)}\n\n`;
+ cart.forEach(i=>{
+  const p=products.find(x=>x.sku===i.sku);
+  msg+=`- ${p.name} x ${i.qty}\n`;
+ });
+ window.open("https://wa.me/96181085811?text="+encodeURIComponent(msg));
+}
+
+function toggleLang(){
+ lang=lang==="en"?"ar":"en";
+ lblName.textContent=lang==="ar"?"اسم العميل":"Client name";
+ lblPhone.textContent=lang==="ar"?"رقم الهاتف":"Phone number";
+ search.placeholder=lang==="ar"?"بحث":"Search";
+ cartTitle.textContent=lang==="ar"?"السلة":"Cart";
+ render();
 }
 </script>
 </body>
