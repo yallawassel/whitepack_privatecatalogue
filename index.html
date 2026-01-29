@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>WhitePack — Catalogue v8.0</title>
+<title>WhitePack — Catalogue v8.1</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
 :root{--bg:#f5fff8;--accent:#166534;--card:#fff}
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial;background:var(--bg);color:#213}
 header{background:linear-gradient(90deg,#a6e8a6,#4ea84e);padding:14px;display:flex;justify-content:space-between;align-items:center}
-button{cursor:pointer}
 .container{padding:16px}
 .client-box{background:#fff;border-radius:10px;padding:10px;margin-bottom:12px}
 input,select{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px solid #ccc}
@@ -18,7 +17,7 @@ input,select{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px 
 .card-img{aspect-ratio:1/1;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
 .card-img img{width:100%;height:100%;object-fit:cover}
 .price{font-weight:bold}
-.cart-btn{margin-top:auto;background:#166534;color:#fff;border:none;border-radius:6px;padding:6px}
+.cart-btn{margin-top:4px;background:#166534;color:#fff;border:none;border-radius:6px;padding:6px}
 .cart{position:fixed;bottom:0;right:0;background:#fff;border-radius:12px 12px 0 0;width:100%;max-width:420px;box-shadow:0 -5px 20px rgba(0,0,0,.2);display:none;padding:10px}
 .cart-item{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .lang{background:#fff;border:none;border-radius:20px;padding:4px 10px}
@@ -28,31 +27,24 @@ input,select{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px 
 
 <header>
   <strong>WhitePack</strong>
-  <div>
-    <button class="lang" onclick="toggleLang()">AR / EN</button>
-    <button class="lang" onclick="openCart()">🛒 <span id="cartCount">0</span></button>
-  </div>
+  <button class="lang" onclick="openCart()">🛒 <span id="cartCount">0</span></button>
 </header>
 
 <div class="container">
 
 <div class="client-box">
-  <label id="lblName">Client name</label>
+  <label>Client name</label>
   <input id="clientName">
-  <label id="lblPhone">Phone number</label>
+  <label>Phone number</label>
   <input id="clientPhone" placeholder="03xxxxxx">
 </div>
 
 <input id="search" placeholder="Search..." oninput="render()">
-<select id="categoryFilter" onchange="render()">
-  <option value="">All categories</option>
-</select>
-
 <div id="grid" class="grid"></div>
 </div>
 
 <div id="cart" class="cart">
-  <h3 id="cartTitle">Cart</h3>
+  <h3>Cart</h3>
   <div id="cartItems"></div>
   <button onclick="sendWhatsApp()" class="cart-btn" style="width:100%">Send to WhatsApp</button>
 </div>
@@ -60,8 +52,7 @@ input,select{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px 
 <script>
 const PRODUCTS_URL="products.json";
 const SPECIAL_URL="special_prices.json";
-const RATE=90000;
-let lang="en",products=[],specials=[],cart=[];
+let products=[],specials=[],cart=[];
 
 function normalizePhone(p){
  let c=String(p||"").replace(/\D/g,"");
@@ -75,20 +66,11 @@ function normalizePhone(p){
 async function load(){
  products=await (await fetch(PRODUCTS_URL)).json();
  try{specials=await (await fetch(SPECIAL_URL)).json();}catch(e){specials=[];}
- buildCategories();
  render();
 }
 load();
 
-function buildCategories(){
- const sel=document.getElementById("categoryFilter");
- const cats=[...new Set(products.map(p=>p.category).filter(Boolean))];
- cats.forEach(c=>{
-  const o=document.createElement("option");
-  o.value=c;o.textContent=c;
-  sel.appendChild(o);
- });
-}
+document.getElementById("clientPhone").addEventListener("input",render);
 
 function getVisibleProducts(){
  const phone=normalizePhone(clientPhone.value);
@@ -104,11 +86,7 @@ function getVisibleProducts(){
   }
  }
  const q=search.value.toLowerCase();
- const cat=categoryFilter.value;
- return list.filter(p=>
-  (!q||p.name.toLowerCase().includes(q)||p.name_ar?.includes(q)) &&
-  (!cat||p.category===cat)
- );
+ return list.filter(p=>!q||p.name.toLowerCase().includes(q));
 }
 
 function render(){
@@ -118,17 +96,18 @@ function render(){
   grid.innerHTML+=`
    <div class="card">
     <div class="card-img"><img src="${p.image||""}" onerror="this.style.display='none'"></div>
-    <strong>${lang==="ar"?(p.name_ar||p.name):p.name}</strong>
+    <strong>${p.name}</strong>
     <div class="price">${p.price} USD</div>
-    <button class="cart-btn" onclick='addToCart("${p.sku}")'>${lang==="ar"?"أضف":"Add"}</button>
+    <input type="number" min="1" value="1" id="qty-${p.sku}">
+    <button class="cart-btn" onclick='addToCart("${p.sku}")'>Add</button>
    </div>`;
  });
 }
 
 function addToCart(sku){
- const p=products.find(x=>x.sku===sku);
+ const qty=parseInt(document.getElementById("qty-"+sku).value||1);
  const f=cart.find(x=>x.sku===sku);
- if(f) f.qty++; else cart.push({sku,qty:1});
+ if(f) f.qty+=qty; else cart.push({sku,qty});
  updateCart();
 }
 
@@ -138,11 +117,7 @@ function updateCart(){
  box.innerHTML="";
  cart.forEach(i=>{
   const p=products.find(x=>x.sku===i.sku);
-  box.innerHTML+=`
-   <div class="cart-item">
-    <span>${p.name}</span>
-    <input type="number" value="${i.qty}" min="1" style="width:60px" onchange="i.qty=this.value">
-   </div>`;
+  box.innerHTML+=`<div class="cart-item"><span>${p.name}</span><span>${i.qty}</span></div>`;
  });
 }
 
@@ -155,15 +130,6 @@ function sendWhatsApp(){
   msg+=`- ${p.name} x ${i.qty}\n`;
  });
  window.open("https://wa.me/96181085811?text="+encodeURIComponent(msg));
-}
-
-function toggleLang(){
- lang=lang==="en"?"ar":"en";
- lblName.textContent=lang==="ar"?"اسم العميل":"Client name";
- lblPhone.textContent=lang==="ar"?"رقم الهاتف":"Phone number";
- search.placeholder=lang==="ar"?"بحث":"Search";
- cartTitle.textContent=lang==="ar"?"السلة":"Cart";
- render();
 }
 </script>
 </body>
