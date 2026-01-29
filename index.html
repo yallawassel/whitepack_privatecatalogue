@@ -1,29 +1,42 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>WhitePack — Catalogue v7.2</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<title>WhitePack — Online Catalogue v7.3</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-body{margin:0;font-family:Arial;background:#f5fff8;color:#213}
-header{background:linear-gradient(90deg,#a6e8a6,#4ea84e);padding:14px}
+:root { --bg:#f5fff8; --accent:#3b7a3a; --accent2:#6ecf6e; --card:#fff; }
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:var(--bg);color:#213}
+header{background:linear-gradient(90deg,#a6e8a6,#4ea84e);padding:14px;display:flex;align-items:center;gap:12px}
+h1{margin:0;font-size:20px}
 .container{padding:16px}
-input,button{padding:8px;border-radius:6px;border:1px solid #ccc}
-button{background:#166534;color:#fff;border:none;cursor:pointer}
-.card{background:#fff;border-radius:10px;padding:10px;margin:8px 0}
-.price{font-weight:bold}
+.client-box{background:#fff;border-radius:10px;padding:10px;margin-bottom:12px}
+input{width:100%;padding:8px;margin-top:4px;border-radius:6px;border:1px solid #ccc}
+button{background:#166534;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.card{background:#fff;border-radius:12px;padding:10px;box-shadow:0 2px 6px rgba(0,0,0,0.06);display:flex;flex-direction:column}
+.card-img{width:100%;aspect-ratio:1/1;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:cover}
+.price{font-weight:bold;margin-top:4px}
+small{color:#555}
 </style>
 </head>
 <body>
-<header><h2>WhitePack</h2></header>
+<header>
+  <h1>WhitePack</h1>
+</header>
 
 <div class="container">
-  <label>Name</label>
-  <input id="clientName">
-  <label>Phone</label>
-  <input id="clientPhone" placeholder="03xxxxxx">
-  <button onclick="applyClient()">Load Catalogue</button>
-  <div id="products"></div>
+  <div class="client-box">
+    <label>Client name</label>
+    <input id="clientName" placeholder="Your name">
+    <label>Phone number (optional)</label>
+    <input id="clientPhone" placeholder="03xxxxxx">
+    <button onclick="applyClient()">Load catalogue</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
 </div>
 
 <script>
@@ -31,58 +44,65 @@ const PRODUCTS_URL = "products.json";
 const SPECIAL_URL = "special_prices.json";
 const RATE = 90000;
 
-let products=[], specials=[];
-let currentClient={name:"",phone:""};
+let products = [];
+let specials = [];
+let currentClient = {name:"", phone:""};
 
-function norm(p){
-  let c=String(p||"").replace(/\D/g,"");
-  if(!c) return "";
+function normalizePhone(num){
+  if(!num) return "";
+  let c = String(num).replace(/\D/g,"");
   if(c.startsWith("961")) return c;
-  c=c.replace(/^0+/,"");
-  if(c.length<=8) c="961"+c;
+  c = c.replace(/^0+/, "");
+  if(c.length <= 8) c = "961" + c;
   return c;
 }
 
-async function load(){
-  products = await (await fetch(PRODUCTS_URL+"?t="+Date.now())).json();
-  specials = await (await fetch(SPECIAL_URL+"?t="+Date.now())).json();
+async function loadData(){
+  products = await (await fetch(PRODUCTS_URL + "?t=" + Date.now())).json();
+  try {
+    specials = await (await fetch(SPECIAL_URL + "?t=" + Date.now())).json();
+  } catch(e){ specials = []; }
+  render(products); // public catalogue by default
 }
-load();
+loadData();
 
 function applyClient(){
-  currentClient.name=document.getElementById("clientName").value||"Unknown";
-  currentClient.phone=norm(document.getElementById("clientPhone").value);
-  let sp = specials.find(s=>norm(s.phone)===currentClient.phone);
-  let list=[];
-  if(sp){
-    list = products.filter(p=>sp.products.some(x=>x.sku===p.sku))
-      .map(p=>{
-        const s=sp.products.find(x=>x.sku===p.sku);
-        return {...p, price:s.price};
-      });
-  }else{
-    list = products;
+  currentClient.name = document.getElementById("clientName").value || "Guest";
+  currentClient.phone = normalizePhone(document.getElementById("clientPhone").value);
+
+  if(!currentClient.phone){
+    render(products);
+    return;
   }
-  render(list);
+
+  const sp = specials.find(s => normalizePhone(s.phone) === currentClient.phone);
+  if(sp){
+    const list = products
+      .filter(p => sp.products.some(x => x.sku === p.sku))
+      .map(p => {
+        const s = sp.products.find(x => x.sku === p.sku);
+        return {...p, price: s.price};
+      });
+    render(list);
+  } else {
+    render(products);
+  }
 }
 
 function render(list){
-  const box=document.getElementById("products");
-  box.innerHTML="";
-  list.forEach(p=>{
-    box.innerHTML+=`<div class="card">
-      <div><strong>${p.name}</strong></div>
-      <div class="price">${p.price} USD (${Math.round(p.price*RATE).toLocaleString()} LBP)</div>
-      <button onclick='order("${p.name}",${p.price})'>Order</button>
-    </div>`;
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  list.forEach(p => {
+    grid.innerHTML += `
+      <div class="card">
+        <div class="card-img">
+          <img src="${p.image || ""}" alt="${p.name}" onerror="this.style.display='none'">
+        </div>
+        <h3>${p.name}</h3>
+        <div class="price">${p.price} USD</div>
+        <small>${Math.round(p.price * RATE).toLocaleString("en-LB")} LBP</small>
+      </div>`;
   });
-}
-
-function order(name,price){
-  const orderNo="WP-"+new Date().getTime();
-  const d=new Date().toLocaleString();
-  let msg=`Order: ${orderNo}\nDate: ${d}\nClient: ${currentClient.name}\nPhone: ${currentClient.phone}\n\n- ${name}: ${price} USD`;
-  window.open("https://wa.me/96181085811?text="+encodeURIComponent(msg));
 }
 </script>
 </body>

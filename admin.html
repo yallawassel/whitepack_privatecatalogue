@@ -1,40 +1,57 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>WhitePack Admin v7.2</title>
+<meta charset="utf-8" />
+<title>WhitePack Admin v7.3</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<h2>Admin — Export Special Prices</h2>
-<input type="file" id="excel">
-<button onclick="exportJSON()">Export special_prices.json</button>
-<pre id="out"></pre>
+<h2>WhitePack Admin</h2>
+<p>Upload Excel and export JSON files</p>
+
+<input type="file" id="excelFile">
+<br><br>
+<button onclick="exportAll()">Export all JSON</button>
+
+<pre id="output"></pre>
 
 <script>
-let rows=[];
-document.getElementById("excel").addEventListener("change",e=>{
- const r=new FileReader();
- r.onload=evt=>{
-  const wb=XLSX.read(new Uint8Array(evt.target.result),{type:"array"});
-  const sh=wb.Sheets["SpecialPrices"];
-  rows=XLSX.utils.sheet_to_json(sh,{defval:""});
- };
- r.readAsArrayBuffer(e.target.files[0]);
+let products=[], specials=[];
+
+document.getElementById("excelFile").addEventListener("change", e => {
+  const r = new FileReader();
+  r.onload = evt => {
+    const wb = XLSX.read(new Uint8Array(evt.target.result), {type:"array"});
+    products = XLSX.utils.sheet_to_json(wb.Sheets["Products"], {defval:""});
+    specials = XLSX.utils.sheet_to_json(wb.Sheets["SpecialPrices"], {defval:""});
+    alert("Excel loaded");
+  };
+  r.readAsArrayBuffer(e.target.files[0]);
 });
 
-function exportJSON(){
- let map={};
- rows.forEach(r=>{
-  const phone=String(r.phone||"");
-  if(!map[phone]) map[phone]={phone,products:[]};
-  map[phone].products.push({sku:r.sku,price:Number(r.special_price)});
- });
- const data=Object.values(map);
- document.getElementById("out").textContent=JSON.stringify(data,null,2);
- const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
- const a=document.createElement("a");
- a.href=URL.createObjectURL(b);a.download="special_prices.json";a.click();
+function exportAll(){
+  const prodOut = products.map(r => ({
+    sku:r.SKU, name:r.Name, price:Number(r.Price||0), image:r.Image||""
+  }));
+
+  let map = {};
+  specials.forEach(r => {
+    if(!map[r.phone]) map[r.phone] = {phone:r.phone, products:[]};
+    map[r.phone].products.push({sku:r.sku, price:Number(r.special_price)});
+  });
+
+  download(prodOut, "products.json");
+  download(Object.values(map), "special_prices.json");
+}
+
+function download(data, filename){
+  const json = JSON.stringify(data, null, 2);
+  document.getElementById("output").textContent = json;
+  const b = new Blob([json], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = filename;
+  a.click();
 }
 </script>
 </body>
