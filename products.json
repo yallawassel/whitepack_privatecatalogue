@@ -2,9 +2,15 @@
   {
     "sku": "SKU-1",
     "name": "Paper Cups",
-    "name_ar": "كبيات كرتون",
     "category": "Paper",
     "price": 1.5,
-    "image": "https://sanitalb.com/public/uploads/images/69428894249722360.jpg"
+    "image": "https://i.imgur.com/QZ6B9qP.jpg"
+  },
+  {
+    "sku": "SKU-2",
+    "name": "Trash Bags",
+    "category": "Nylon",
+    "price": 1,
+    "image": "https://i.imgur.com/8KQbF7G.jpg"
   }
 ]
