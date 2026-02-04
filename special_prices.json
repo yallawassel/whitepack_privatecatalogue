@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "phone": 70333029,
+    "products": [
+      {
+        "sku": "sku-1",
+        "price": 1
+      },
+      {
+        "sku": "sku-2",
+        "price": 0.5
+      }
+    ]
+  },
+  {
+    "phone": "9613123456",
+    "products": [
+      {
+        "sku": "SKU-1",
+        "price": 1.2
+      }
+    ]
+  }
+]
