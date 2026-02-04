@@ -1,16 +1,1 @@
-[
-  {
-    "sku": "SKU-1",
-    "name": "Paper Cups",
-    "category": "Paper",
-    "price": 1.5,
-    "image": "https://i.imgur.com/QZ6B9qP.jpg"
-  },
-  {
-    "sku": "SKU-2",
-    "name": "Trash Bags",
-    "category": "Nylon",
-    "price": 1,
-    "image": "https://i.imgur.com/8KQbF7G.jpg"
-  }
-]
+[]
