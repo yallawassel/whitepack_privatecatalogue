@@ -373,7 +373,7 @@ h1 { margin: 0; font-size: 20px; color: #1f401d; }
 
 <script>
 // CONFIG
-const DATA_URL = "https://yallawassel.github.io/whitepack_store/products.json";
+const DATA_URL = "products.json";
 const RATE_KEY = "internal_catalogue_usd_to_lbp";
 const ADMIN_PW = "whitepack123";
 const CART_KEY = "whitepack_cart_v1";
@@ -435,7 +435,7 @@ function render(){
 
   filtered.forEach((p) => {
     const realIndex = products.indexOf(p);
-    const priceUSD = p.price ? Number(p.price) : null;
+    const priceUSD = (p.price !== null && p.price !== undefined) ? Number(p.price) : null;
     const priceLBP = priceUSD ? Math.round(priceUSD * rate).toLocaleString("en-LB") : null;
     const name = currentLang==="ar" ? (p.name_ar || p.name || "(بدون اسم)") : (p.name || "(no name)");
     const desc = currentLang==="ar" ? (p.description_ar || "") : (p.description || "");
