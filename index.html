@@ -435,7 +435,14 @@ function render(){
 
   filtered.forEach((p) => {
     const realIndex = products.indexOf(p);
-    const priceUSD = (p.price !== null && p.price !== undefined) ? Number(p.price) : null;
+    
+    const phone = document.getElementById("clientPhone")?.value.trim();
+    const basePrice = (phone && p.special_price !== null && p.special_price !== undefined)
+      ? Number(p.special_price)
+      : (p.price !== null && p.price !== undefined ? Number(p.price) : null);
+
+    const priceUSD = basePrice;
+
     const priceLBP = priceUSD ? Math.round(priceUSD * rate).toLocaleString("en-LB") : null;
     const name = currentLang==="ar" ? (p.name_ar || p.name || "(بدون اسم)") : (p.name || "(no name)");
     const desc = currentLang==="ar" ? (p.description_ar || "") : (p.description || "");
@@ -522,7 +529,7 @@ if(existing){
     sku: p.sku,
     name: p.name,
     name_ar: p.name_ar,
-    price: p.price,
+    price: (document.getElementById("clientPhone")?.value.trim() && p.special_price !== null && p.special_price !== undefined) ? p.special_price : p.price,
     qty: qty
   });
 }
