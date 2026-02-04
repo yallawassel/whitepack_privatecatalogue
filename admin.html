@@ -1,54 +1,59 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>WhitePack Admin v8.2</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WhitePack Admin Panel (Private Ready)</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<h2>Admin</h2>
-<input type="file" id="excel">
-<button onclick="exportAll()">Export JSON</button>
-<pre id="out"></pre>
+<h2>WhitePack Admin – Public + Private Export</h2>
+<input type="file" id="excelFile" accept=".xlsx,.xls" />
+<br><br>
+<button onclick="exportJSON()">Export products.json</button>
+<br><br>
+<textarea id="out" style="width:100%;height:300px"></textarea>
 
 <script>
-let rowsP=[],rowsS=[];
-excel.onchange=e=>{
- const r=new FileReader();
- r.onload=x=>{
-  const wb=XLSX.read(new Uint8Array(x.target.result),{type:"array"});
-  rowsP=XLSX.utils.sheet_to_json(wb.Sheets["Products"],{defval:""});
-  rowsS=XLSX.utils.sheet_to_json(wb.Sheets["SpecialPrices"],{defval:""});
- };
- r.readAsArrayBuffer(e.target.files[0]);
-};
+let excelData=[];
+document.getElementById('excelFile').addEventListener('change',e=>{
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+    excelData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+    alert("Loaded rows: "+excelData.length);
+  };
+  reader.readAsArrayBuffer(e.target.files[0]);
+});
 
-function exportAll(){
- const products=rowsP.map(r=>({
-  sku:r.SKU,
-  name:r.Name,
-  category:r.Category,
-  price:Number(r.Price),
-  image:r.Image||""
- }));
+function exportJSON(){
+  const normalize=k=>k?k.trim().toLowerCase():"";
+  const mapped=excelData.map(r=>{
+    const keys=Object.keys(r).reduce((a,k)=>{a[normalize(k)]=k;return a;},{});
+    return{
+      sku:r[keys["sku"]]||"",
+      name:r[keys["name"]]||"",
+      name_ar:r[keys["name_ar"]]||"",
+      category:r[keys["category"]]||"",
+      category_ar:r[keys["category_ar"]]||"",
+      description:r[keys["description"]]||"",
+      description_ar:r[keys["description_ar"]]||"",
+      price:Number(r[keys["price"]]||0),
+      quantity:Number(r[keys["quantity"]]||0),
+      image:r[keys["image"]]||"",
+      client_phone:String(r[keys["clientphone"]]||"").trim(),
+      special_price:r[keys["specialprice"]]!=="" ? Number(r[keys["specialprice"]]) : null
+    };
+  });
 
- let map={};
- rowsS.forEach(r=>{
-  if(!map[r.phone]) map[r.phone]={phone:r.phone,products:[]};
-  map[r.phone].products.push({sku:r.sku,price:Number(r.special_price)});
- });
+  const json=JSON.stringify(mapped,null,2);
+  document.getElementById("out").value=json;
 
- download(products,"products.json");
- download(Object.values(map),"special_prices.json");
-}
-
-function download(data,name){
- const j=JSON.stringify(data,null,2);
- out.textContent=j;
- const a=document.createElement("a");
- a.href=URL.createObjectURL(new Blob([j],{type:"application/json"}));
- a.download=name;
- a.click();
+  const blob=new Blob([json],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="products.json";
+  a.click();
 }
 </script>
 </body>
